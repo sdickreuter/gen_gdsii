@@ -23,7 +23,7 @@ def get_circle(r,n=12):
 
 
 @njit()
-def get_hexgrid(size,dist):
+def get_graphgrid(size,dist):
     d = dist# (dist+2*r)
     #a = np.sqrt(3)*d
     dx = np.sqrt(3)
@@ -62,6 +62,38 @@ def get_hexgrid(size,dist):
 
     return x[:counter],y[:counter]
 
+
+@njit()
+def get_hexgrid(size,dist):
+    d = dist# (dist+2*r)
+    #a = np.sqrt(3)*d
+    dx = np.sqrt(3)
+    dy = 1/2
+
+    #x_pos = np.arange(d,size-d,0.5*d*dx)
+    #y_pos = np.arange(d,size-d,2*d*dy)
+    x_pos = np.arange(0, size,1.0)*0.5*d*dx
+    y_pos = np.arange(0, size,1.0)*2*d*dy
+
+
+    x = np.zeros((len(x_pos),len(y_pos)))
+    y = np.zeros((len(x_pos),len(y_pos)))
+    #xy =
+
+    counter = 0
+
+    for i in range(len(x_pos)):
+        for j in range(len(y_pos)):
+            x[i,j] = x_pos[i]
+            y0 = y_pos[j]
+            if not i % 2:
+                y[i,j] = y0
+            else:
+                y[i,j] = y0 + d * dy
+            counter += 1
+
+    return x.ravel(),y.ravel()
+
 @jit()
 def add_field(cell,hx,hy,x,y,r,layer=1):
 
@@ -82,11 +114,10 @@ def add_field(cell,hx,hy,x,y,r,layer=1):
 
 def add_hexgrid_field(cell,x,y,dist,r,n,layer=1):
     hx, hy = get_hexgrid(n, dist)
-    # plt.scatter(hx,hy)
-    # plt.show()
-    # print((len(hx),len(hy)))
-    #hx /= 1000
-    #hy /= 1000
+    add_field(cell,hx,hy,x,y,r,layer)
+
+def add_graphgrid_field(cell,x,y,dist,r,n,layer=1):
+    hx, hy = get_graphgrid(n, dist)
     add_field(cell,hx,hy,x,y,r,layer)
 
 
@@ -94,16 +125,22 @@ def add_hexgrid_field(cell,x,y,dist,r,n,layer=1):
 def make_hexgrid_cell(name):
     cell = gdspy.Cell(name)
 
-    space = 10+15
+    space = 10+15+50
 
     r = (60 / 2) * 1e-3
     dist = np.arange(20, 100, 10) * 1e-3 + 2*r
-    n = int(50000/dist.max())-2
 
     for j in range(len(dist)):
+        n = int(50 / dist[j]) - 2
+        add_graphgrid_field(cell,space*j,-(space),dist[j],r,n)
         add_hexgrid_field(cell,space*j,0,dist[j],r,n)
 
-make_hexgrid_cell("HEXGRID")
+
+
+
+
+
+make_hexgrid_cell("HEXGRIDS")
 
 
 # Output the layout to a GDSII file (default to all created cells).
@@ -116,4 +153,4 @@ gdspy.write_gds('sdickreuter_hexgrid.gds', unit=1.0e-6, precision=1.0e-12)
 
 # View the layout using a GUI.  Full description of the controls can
 # be found in the online help at http://gdspy.sourceforge.net/
-gdspy.LayoutViewer()
+#gdspy.LayoutViewer()
